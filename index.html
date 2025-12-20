@@ -1,98 +1,140 @@
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>文件夹部署预览器</title>
+    <title>文件夹预览部署器 - 带目录版</title>
     <style>
-        :root { --primary: #2563eb; --bg: #f8fafc; }
-        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; }
-        .upload-card { 
-            background: white; border: 2px dashed #cbd5e1; border-radius: 12px;
-            padding: 40px; text-align: center; transition: all 0.3s;
+        :root { --sidebar-width: 250px; --primary-color: #2563eb; }
+        body { font-family: system-ui, sans-serif; margin: 0; display: flex; height: 100vh; background: #f1f5f9; }
+
+        /* 左侧侧边栏 */
+        #sidebar { 
+            width: var(--sidebar-width); background: #fff; border-right: 1px solid #e2e8f0;
+            display: flex; flex-direction: column; flex-shrink: 0;
         }
-        .upload-card:hover { border-color: var(--primary); background: #f1f5f9; }
-        .btn {
-            background: var(--primary); color: white; padding: 10px 20px;
-            border-radius: 6px; cursor: pointer; display: inline-block; font-weight: 500;
+        .sidebar-header { padding: 20px; border-bottom: 1px solid #eee; }
+        #file-list { flex-grow: 1; overflow-y: auto; list-style: none; padding: 10px; margin: 0; }
+        #file-list li { 
+            padding: 10px; margin-bottom: 5px; border-radius: 6px; cursor: pointer;
+            font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            transition: background 0.2s; color: #475569;
         }
-        #preview-frame {
-            width: 100%; height: 600px; border: 1px solid #e2e8f0;
-            border-radius: 8px; margin-top: 20px; background: white; display: none;
-        }
-        .status { margin-top: 10px; font-size: 14px; color: #64748b; }
+        #file-list li:hover { background: #f8fafc; color: var(--primary-color); }
+        #file-list li.active { background: #eff6ff; color: var(--primary-color); font-weight: bold; }
+
+        /* 右侧主内容区 */
+        #main-content { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .toolbar { padding: 10px 20px; background: #fff; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 15px; }
+        #preview-frame { width: 100%; flex-grow: 1; border: none; background: #fff; }
+        
+        /* 初始状态 */
+        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #94a3b8; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="upload-card" id="drop-zone">
-        <h2>📂 上传项目文件夹</h2>
-        <p>选择包含 index.html 的整个文件夹，系统将自动关联 CSS/JS/图片</p>
-        <label class="btn">
-            选择文件夹
-            <input type="file" id="folder-input" webkitdirectory directory multiple hidden>
-        </label>
-        <div id="file-status" class="status">未选择任何文件</div>
+    <div id="sidebar">
+        <div class="sidebar-header">
+            <h3 style="margin:0 0 10px 0; font-size: 16px;">项目文件</h3>
+            <label style="background: var(--primary-color); color: white; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; display: inline-block;">
+                上传文件夹
+                <input type="file" id="folder-input" webkitdirectory directory multiple hidden>
+            </label>
+        </div>
+        <ul id="file-list">
+            <div class="empty-state" style="font-size: 12px; padding-top: 20px;">暂无文件</div>
+        </ul>
     </div>
 
-    <iframe id="preview-frame"></iframe>
-</div>
+    <div id="main-content">
+        <div class="toolbar">
+            <span id="current-file-name" style="font-size: 14px; color: #64748b;">未加载项目</span>
+        </div>
+        
+        <div id="frame-container" style="flex-grow: 1;">
+            <div id="initial-view" class="empty-state">
+                <p>请在左侧上传文件夹以开始部署</p>
+            </div>
+            <iframe id="preview-frame" class="hidden"></iframe>
+        </div>
+    </div>
 
 <script>
     const folderInput = document.getElementById('folder-input');
+    const fileListElement = document.getElementById('file-list');
     const previewFrame = document.getElementById('preview-frame');
-    const status = document.getElementById('file-status');
+    const initialView = document.getElementById('initial-view');
+    const currentFileNameDisplay = document.getElementById('current-file-name');
+
+    let fileMap = {}; // 存储所有文件的路径映射
 
     folderInput.addEventListener('change', async (e) => {
         const files = Array.from(e.target.files);
         if (files.length === 0) return;
 
-        status.innerText = `正在处理 ${files.length} 个文件...`;
+        fileMap = {};
+        fileListElement.innerHTML = ''; // 清空列表
+        let htmlFiles = [];
 
-        // 1. 建立路径映射表 { "style.css": "blob:xxx", "img/logo.png": "blob:yyy" }
-        const fileMap = {};
-        let entryHtmlFile = null;
-
+        // 1. 构建路径映射和 HTML 列表
         for (const file of files) {
+            // 获取相对路径 (去掉第一层文件夹名)
             const path = file.webkitRelativePath.split('/').slice(1).join('/');
             const blobUrl = URL.createObjectURL(file);
-            fileMap[path] = blobUrl;
+            fileMap[path] = { blobUrl, file };
 
-            // 寻找入口文件 (优先找 index.html 或根目录下的 html)
-            if (path.toLowerCase() === 'index.html' || (!entryHtmlFile && path.endsWith('.html'))) {
-                entryHtmlFile = file;
+            if (path.toLowerCase().endsWith('.html')) {
+                htmlFiles.push(path);
             }
         }
 
-        if (!entryHtmlFile) {
-            alert("文件夹内未找到 .html 入口文件！");
-            return;
+        // 2. 渲染侧边栏列表
+        if (htmlFiles.length > 0) {
+            htmlFiles.sort().forEach(path => {
+                const li = document.createElement('li');
+                li.innerText = path;
+                li.title = path;
+                li.onclick = () => loadHtmlFile(path, li);
+                fileListElement.appendChild(li);
+            });
+
+            // 默认加载第一个 HTML (通常是 index.html)
+            const indexFile = htmlFiles.find(p => p.toLowerCase().includes('index.html')) || htmlFiles[0];
+            loadHtmlFile(indexFile, fileListElement.querySelector('li'));
+        } else {
+            fileListElement.innerHTML = '<div class="empty-state">未找到 HTML</div>';
         }
+    });
 
-        // 2. 读取并解析入口 HTML
-        let htmlContent = await entryHtmlFile.text();
+    async function loadHtmlFile(path, element) {
+        // 样式切换
+        document.querySelectorAll('#file-list li').forEach(el => el.classList.remove('active'));
+        element.classList.add('active');
+        
+        // 更新 UI 状态
+        initialView.classList.add('hidden');
+        previewFrame.classList.remove('hidden');
+        currentFileNameDisplay.innerText = `正在预览: ${path}`;
 
-        // 3. 核心替换逻辑：将 HTML 中的相对路径替换为 Blob URL
-        // 处理 href, src 属性
-        for (const [relativePath, blobUrl] of Object.entries(fileMap)) {
-            // 简单正则替换：匹配引号内的相对路径（注意：复杂路径可能需要更精密的正则或 DOMParser）
-            const escapedPath = relativePath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        // 读取 HTML 内容并处理资源路径
+        const { file } = fileMap[path];
+        let content = await file.text();
+
+        // 核心：替换资源路径为 Blob URL
+        // 支持替换 src="..." 和 href="..." 中的路径
+        for (const [relPath, data] of Object.entries(fileMap)) {
+            const escapedPath = relPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const regex = new RegExp(`(['"])(?:\\.\\/)?${escapedPath}(['"])`, 'g');
-            htmlContent = htmlContent.replace(regex, `$1${blobUrl}$2`);
+            content = content.replace(regex, `$1${data.blobUrl}$2`);
         }
 
-        // 4. 将处理后的 HTML 加载到 iframe
-        previewFrame.style.display = 'block';
+        // 写入 Iframe
         const doc = previewFrame.contentWindow.document;
         doc.open();
-        doc.write(htmlContent);
+        doc.write(content);
         doc.close();
-
-        status.innerText = `成功加载：${entryHtmlFile.name}`;
-    });
+    }
 </script>
-
 </body>
 </html>
