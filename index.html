@@ -1,174 +1,54 @@
-import React, { useState } from 'react';
-import { FileCode, Layout, MousePointer2, Info, FolderOpen, ExternalLink } from 'lucide-react';
-
-const App = () => {
-  const [files, setFiles] = useState([
-    {
-      name: 'index.html',
-      content: `<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>我的网站首页</title>
+    <title>HTML 部署预览器</title>
     <style>
-        body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; display: flex; height: 100vh; background: #f8fafc; }
-        nav { width: 200px; background: #1e293b; color: white; padding: 20px; }
-        nav h2 { font-size: 1.2rem; margin-bottom: 20px; color: #38bdf8; }
-        nav a { display: block; color: #cbd5e1; text-decoration: none; padding: 10px; margin-bottom: 5px; border-radius: 6px; transition: 0.2s; cursor: pointer; }
-        nav a:hover { background: #334155; color: white; }
-        main { flex: 1; display: flex; flex-direction: column; }
-        header { background: white; padding: 15px 30px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        .content-area { flex: 1; padding: 20px; box-sizing: border-box; }
-        /* 关键：同目录嵌套 */
-        iframe { width: 100%; height: 100%; border: 2px solid #e2e8f0; border-radius: 12px; background: white; }
+        body { font-family: sans-serif; padding: 20px; }
+        .upload-section { margin-bottom: 20px; padding: 20px; border: 2px dashed #ccc; }
+        #preview-container { width: 100%; height: 500px; border: 1px solid #ddd; display: none; }
+        iframe { width: 100%; height: 100%; border: none; }
     </style>
 </head>
 <body>
-    <nav>
-        <h2>项目控制台</h2>
-        <a onclick="document.getElementById('view').src='about.html'">关于页面</a>
-        <a onclick="document.getElementById('view').src='contact.html'">联系页面</a>
-    </nav>
-    <main>
-        <header><h1>主控制面板 (index.html)</h1></header>
-        <div class="content-area">
-            <!-- 默认加载同目录下的 about.html -->
-            <iframe id="view" src="about.html"></iframe>
-        </div>
-    </main>
-</body>
-</html>`
-    },
-    {
-      name: 'about.html',
-      content: `<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        body { font-family: sans-serif; padding: 30px; background: #f0fdf4; color: #166534; margin: 0; }
-        .card { background: white; padding: 20px; border-radius: 8px; border-left: 5px solid #22c55e; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <h2>关于我们 (about.html)</h2>
-        <p>这是一个独立的文件，目前被 index.html 引用。</p>
-        <p>路径识别：<code>src="about.html"</code></p>
-    </div>
-</body>
-</html>`
-    },
-    {
-      name: 'contact.html',
-      content: `<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        body { font-family: sans-serif; padding: 30px; background: #fff1f2; color: #9f1239; margin: 0; }
-        .card { background: white; padding: 20px; border-radius: 8px; border-left: 5px solid #f43f5e; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <h2>联系我们 (contact.html)</h2>
-        <p>反馈邮箱：support@example.com</p>
-        <p>状态：已通过同目录路径加载成功。</p>
-    </div>
-</body>
-</html>`
-    }
-  ]);
 
-  const [activeFileIdx, setActiveFileIdx] = useState(0);
-
-  // 模拟浏览器渲染逻辑，将文件名替换为内存 Blob URL 以便在预览窗口中正常跳转
-  const generatePreview = () => {
-    let mainHtml = files[0].content;
-    const fileMap = {};
+    <h2>上传并嵌套 HTML 页面</h2>
     
-    // 为每个 HTML 生成 blob
-    files.forEach(f => {
-      const blob = new Blob([f.content], { type: 'text/html' });
-      fileMap[f.name] = URL.createObjectURL(blob);
-    });
-
-    // 替换源码中的引用
-    let rendered = mainHtml;
-    files.forEach(f => {
-      const regex = new RegExp(`'${f.name}'|"${f.name}"`, 'g');
-      rendered = rendered.replace(regex, `"${fileMap[f.name]}"`);
-    });
-
-    return rendered;
-  };
-
-  return (
-    <div className="flex flex-col h-screen bg-slate-900 text-slate-200">
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-3 bg-slate-800 border-b border-slate-700">
-        <div className="flex items-center gap-3">
-          <FolderOpen className="text-blue-400" size={20} />
-          <h1 className="font-semibold tracking-tight">静态网站项目模拟 (同目录模式)</h1>
-        </div>
-        <div className="flex items-center gap-4 text-xs">
-          <span className="flex items-center gap-1 text-slate-400">
-            <Info size={14} /> 提示：直接使用文件名引用同级资源
-          </span>
-        </div>
-      </div>
-
-      <div className="flex flex-1 overflow-hidden">
-        {/* File Explorer & Code Editor */}
-        <div className="w-1/2 flex flex-col border-r border-slate-700">
-          <div className="flex bg-slate-800 p-1 gap-1">
-            {files.map((file, idx) => (
-              <button
-                key={file.name}
-                onClick={() => setActiveFileIdx(idx)}
-                className={`flex items-center gap-2 px-4 py-2 text-sm rounded-t transition-colors ${
-                  activeFileIdx === idx ? 'bg-slate-900 text-blue-400 shadow-sm' : 'text-slate-500 hover:bg-slate-700'
-                }`}
-              >
-                <FileCode size={14} />
-                {file.name}
-              </button>
-            ))}
-          </div>
-          <div className="flex-1 relative">
-            <textarea
-              className="w-full h-full bg-slate-900 p-6 font-mono text-sm text-slate-300 outline-none resize-none"
-              value={files[activeFileIdx].content}
-              onChange={(e) => {
-                const newFiles = [...files];
-                newFiles[activeFileIdx].content = e.target.value;
-                setFiles(newFiles);
-              }}
-              spellCheck="false"
-            />
-          </div>
-        </div>
-
-        {/* Live Preview */}
-        <div className="w-1/2 flex flex-col bg-white">
-          <div className="bg-slate-100 px-4 py-2 flex items-center justify-between border-b border-slate-200">
-            <div className="flex items-center gap-2">
-              <div className="flex gap-1">
-                <div className="w-3 h-3 rounded-full bg-red-400" />
-                <div className="w-3 h-3 rounded-full bg-yellow-400" />
-                <div className="w-3 h-3 rounded-full bg-green-400" />
-              </div>
-              <span className="text-xs text-slate-500 ml-4 font-mono">http://localhost/index.html</span>
-            </div>
-          </div>
-          <iframe
-            className="w-full flex-1"
-            srcDoc={generatePreview()}
-            title="preview"
-          />
-        </div>
-      </div>
+    <div class="upload-section">
+        <input type="file" id="html-upload" accept=".html">
+        <p>选择一个 .html 文件立即预览</p>
     </div>
-  );
-};
 
-export default App;
+    <div id="preview-container">
+        <h3>预览窗口：</h3>
+        <iframe id="display-frame"></iframe>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('html-upload');
+        const frame = document.getElementById('display-frame');
+        const container = document.getElementById('preview-container');
+
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file && file.type === "text/html") {
+                // 1. 创建一个指向该文件的临时 Blob URL
+                const blobURL = URL.createObjectURL(file);
+                
+                // 2. 将 URL 赋值给 iframe
+                frame.src = blobURL;
+                
+                // 3. 显示预览区域
+                container.style.display = 'block';
+
+                // 释放内存（可选：在 iframe 加载完成后）
+                frame.onload = () => {
+                    // URL.revokeObjectURL(blobURL); 
+                };
+            } else {
+                alert("请上传有效的 HTML 文件");
+            }
+        });
+    </script>
+</body>
+</html>
