@@ -1,0 +1,159 @@
+import React, { useState, useEffect } from 'react';
+import { FileCode, Folder, Play, Save, ChevronRight, Globe, Info } from 'lucide-react';
+
+const App = () => {
+  // 模拟同目录下的文件系统
+  const [files, setFiles] = useState([
+    {
+      name: 'index.html',
+      content: `<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: sans-serif; background: #f0f2f5; padding: 20px; }
+    .container { border: 2px solid #007bff; border-radius: 8px; background: white; padding: 15px; }
+    iframe { width: 100%; height: 200px; border: 2px dashed #ccc; margin-top: 10px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div className="container">
+    <h1>主页面 (index.html)</h1>
+    <p>下方是通过 <code>&lt;iframe src="sub_page.html"&gt;</code> 嵌套的内容：</p>
+    <!-- 因为在同目录，所以直接写文件名即可识别 -->
+    <iframe src="sub_page.html"></iframe>
+  </div>
+</body>
+</html>`,
+    },
+    {
+      name: 'sub_page.html',
+      content: `<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { background: #e3f2fd; padding: 15px; margin: 0; }
+    .card { background: #2196f3; color: white; padding: 10px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div className="card">
+    <h3>嵌套页面 (sub_page.html)</h3>
+    <p>我是同目录下的另一个 HTML 文件。</p>
+  </div>
+</body>
+</html>`,
+    }
+  ]);
+
+  const [activeFileIndex, setActiveFileIndex] = useState(0);
+  const [previewKey, setPreviewKey] = useState(0);
+
+  // 处理内容修改
+  const handleCodeChange = (e) => {
+    const newFiles = [...files];
+    newFiles[activeFileIndex].content = e.target.value;
+    setFiles(newFiles);
+  };
+
+  // 生成预览 URL (将同目录下的文件转换为 Blob 映射)
+  const getCombinedPreview = () => {
+    let mainHtml = files[0].content;
+    
+    // 关键逻辑：遍历所有文件，将 iframe 的 src 替换为对应的 Blob 内容
+    // 在真实生产环境，同目录下浏览器会自动处理；在 Sandbox 里我们需要手动模拟这个“路径查找”过程
+    files.forEach((file, index) => {
+      if (index === 0) return;
+      const fileBlob = new Blob([file.content], { type: 'text/html' });
+      const fileUrl = URL.createObjectURL(fileBlob);
+      // 替换源码中的相对路径
+      const regex = new RegExp(`src="${file.name}"`, 'g');
+      mainHtml = mainHtml.replace(regex, `src="${fileUrl}"`);
+    });
+
+    return mainHtml;
+  };
+
+  return (
+    <div className="flex flex-col h-screen bg-gray-900 text-gray-100 font-sans">
+      {/* Top Bar */}
+      <div className="h-12 border-b border-gray-700 bg-gray-800 flex items-center px-4 justify-between">
+        <div className="flex items-center gap-2">
+          <Globe size={18} className="text-blue-400" />
+          <span className="text-sm font-bold">同目录 HTML 嵌套模拟器</span>
+        </div>
+        <button 
+          onClick={() => setPreviewKey(prev => prev + 1)}
+          className="flex items-center gap-2 bg-green-600 hover:bg-green-500 px-3 py-1 rounded text-xs transition-colors"
+        >
+          <Play size={14} /> 刷新预览
+        </button>
+      </div>
+
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <div className="w-56 border-r border-gray-700 bg-gray-800/50 p-4">
+          <div className="flex items-center gap-2 text-gray-400 text-xs mb-4 uppercase tracking-widest">
+            <Folder size={14} />
+            <span>项目目录 (Root)</span>
+          </div>
+          <div className="space-y-1">
+            {files.map((file, idx) => (
+              <div
+                key={file.name}
+                onClick={() => setActiveFileIndex(idx)}
+                className={`flex items-center gap-2 p-2 rounded cursor-pointer text-sm transition-all ${
+                  activeFileIndex === idx ? 'bg-blue-600/20 text-blue-400 border border-blue-600/30' : 'hover:bg-gray-700/50 text-gray-400'
+                }`}
+              >
+                <FileCode size={14} />
+                <span>{file.name}</span>
+              </div>
+            ))}
+          </div>
+          
+          <div className="mt-8 p-3 bg-gray-900/50 rounded-lg border border-gray-700">
+            <div className="flex items-center gap-2 text-yellow-500 mb-1">
+              <Info size={14} />
+              <span className="text-xs font-bold">提示</span>
+            </div>
+            <p className="text-[10px] text-gray-500 leading-relaxed">
+              在真实环境中，只要 <code className="text-gray-300">index.html</code> 和 <code className="text-gray-300">sub_page.html</code> 放在同一个文件夹下，浏览器就会通过相对路径直接加载。
+            </p>
+          </div>
+        </div>
+
+        {/* Editor & Preview */}
+        <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+          {/* Editor */}
+          <div className="flex-1 flex flex-col border-r border-gray-700">
+            <div className="bg-gray-800 px-4 py-2 text-[10px] font-mono text-gray-500 border-b border-gray-700">
+              EDITING: {files[activeFileIndex].name}
+            </div>
+            <textarea
+              spellCheck="false"
+              className="flex-1 bg-gray-900 p-4 font-mono text-sm outline-none resize-none text-blue-100"
+              value={files[activeFileIndex].content}
+              onChange={handleCodeChange}
+            />
+          </div>
+
+          {/* Preview */}
+          <div className="flex-1 flex flex-col">
+            <div className="bg-gray-800 px-4 py-2 text-[10px] font-mono text-gray-500 border-b border-gray-700 flex justify-between">
+              <span>浏览器预览 (实时)</span>
+              <span className="text-gray-600">localhost:3000/index.html</span>
+            </div>
+            <iframe
+              key={previewKey}
+              title="browser-preview"
+              srcDoc={getCombinedPreview()}
+              className="flex-1 bg-white"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default App;
