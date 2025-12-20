@@ -1,54 +1,98 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>HTML 部署预览器</title>
+    <title>文件夹部署预览器</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; }
-        .upload-section { margin-bottom: 20px; padding: 20px; border: 2px dashed #ccc; }
-        #preview-container { width: 100%; height: 500px; border: 1px solid #ddd; display: none; }
-        iframe { width: 100%; height: 100%; border: none; }
+        :root { --primary: #2563eb; --bg: #f8fafc; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .upload-card { 
+            background: white; border: 2px dashed #cbd5e1; border-radius: 12px;
+            padding: 40px; text-align: center; transition: all 0.3s;
+        }
+        .upload-card:hover { border-color: var(--primary); background: #f1f5f9; }
+        .btn {
+            background: var(--primary); color: white; padding: 10px 20px;
+            border-radius: 6px; cursor: pointer; display: inline-block; font-weight: 500;
+        }
+        #preview-frame {
+            width: 100%; height: 600px; border: 1px solid #e2e8f0;
+            border-radius: 8px; margin-top: 20px; background: white; display: none;
+        }
+        .status { margin-top: 10px; font-size: 14px; color: #64748b; }
     </style>
 </head>
 <body>
 
-    <h2>上传并嵌套 HTML 页面</h2>
-    
-    <div class="upload-section">
-        <input type="file" id="html-upload" accept=".html">
-        <p>选择一个 .html 文件立即预览</p>
+<div class="container">
+    <div class="upload-card" id="drop-zone">
+        <h2>📂 上传项目文件夹</h2>
+        <p>选择包含 index.html 的整个文件夹，系统将自动关联 CSS/JS/图片</p>
+        <label class="btn">
+            选择文件夹
+            <input type="file" id="folder-input" webkitdirectory directory multiple hidden>
+        </label>
+        <div id="file-status" class="status">未选择任何文件</div>
     </div>
 
-    <div id="preview-container">
-        <h3>预览窗口：</h3>
-        <iframe id="display-frame"></iframe>
-    </div>
+    <iframe id="preview-frame"></iframe>
+</div>
 
-    <script>
-        const fileInput = document.getElementById('html-upload');
-        const frame = document.getElementById('display-frame');
-        const container = document.getElementById('preview-container');
+<script>
+    const folderInput = document.getElementById('folder-input');
+    const previewFrame = document.getElementById('preview-frame');
+    const status = document.getElementById('file-status');
 
-        fileInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file && file.type === "text/html") {
-                // 1. 创建一个指向该文件的临时 Blob URL
-                const blobURL = URL.createObjectURL(file);
-                
-                // 2. 将 URL 赋值给 iframe
-                frame.src = blobURL;
-                
-                // 3. 显示预览区域
-                container.style.display = 'block';
+    folderInput.addEventListener('change', async (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
 
-                // 释放内存（可选：在 iframe 加载完成后）
-                frame.onload = () => {
-                    // URL.revokeObjectURL(blobURL); 
-                };
-            } else {
-                alert("请上传有效的 HTML 文件");
+        status.innerText = `正在处理 ${files.length} 个文件...`;
+
+        // 1. 建立路径映射表 { "style.css": "blob:xxx", "img/logo.png": "blob:yyy" }
+        const fileMap = {};
+        let entryHtmlFile = null;
+
+        for (const file of files) {
+            const path = file.webkitRelativePath.split('/').slice(1).join('/');
+            const blobUrl = URL.createObjectURL(file);
+            fileMap[path] = blobUrl;
+
+            // 寻找入口文件 (优先找 index.html 或根目录下的 html)
+            if (path.toLowerCase() === 'index.html' || (!entryHtmlFile && path.endsWith('.html'))) {
+                entryHtmlFile = file;
             }
-        });
-    </script>
+        }
+
+        if (!entryHtmlFile) {
+            alert("文件夹内未找到 .html 入口文件！");
+            return;
+        }
+
+        // 2. 读取并解析入口 HTML
+        let htmlContent = await entryHtmlFile.text();
+
+        // 3. 核心替换逻辑：将 HTML 中的相对路径替换为 Blob URL
+        // 处理 href, src 属性
+        for (const [relativePath, blobUrl] of Object.entries(fileMap)) {
+            // 简单正则替换：匹配引号内的相对路径（注意：复杂路径可能需要更精密的正则或 DOMParser）
+            const escapedPath = relativePath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`(['"])(?:\\.\\/)?${escapedPath}(['"])`, 'g');
+            htmlContent = htmlContent.replace(regex, `$1${blobUrl}$2`);
+        }
+
+        // 4. 将处理后的 HTML 加载到 iframe
+        previewFrame.style.display = 'block';
+        const doc = previewFrame.contentWindow.document;
+        doc.open();
+        doc.write(htmlContent);
+        doc.close();
+
+        status.innerText = `成功加载：${entryHtmlFile.name}`;
+    });
+</script>
+
 </body>
 </html>
