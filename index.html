@@ -3,232 +3,330 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UniLauncher 重制版</title>
+    <title>Minecraft Universal Launcher - Connected</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --accent: #3b82f6;
-            --bg-dark: #0f172a;
+            --glass-bg: rgba(15, 15, 25, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --accent-color: #3b82f6;
         }
+
         body {
-            background-color: var(--bg-dark);
-            color: #f8fafc;
-            font-family: 'Inter', 'Microsoft YaHei', sans-serif;
+            margin: 0; padding: 0; min-height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            background: #050505;
+            font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+            color: #fff;
             overflow: hidden;
         }
-        .glass {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+
+        .bg-layer {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: url('https://www.minecraft.net/content/dam/games/minecraft/key-art/Update_1.21_KeyArt_1920x1080.jpg') center/cover;
+            filter: blur(40px) brightness(0.4);
+            z-index: -1;
         }
-        .sidebar-item.active {
-            background: rgba(59, 130, 246, 0.2);
-            border-left: 4px solid var(--accent);
-            color: var(--accent);
+
+        .launcher-window {
+            width: 1050px; height: 680px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            display: flex; flex-direction: column;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.8);
+            position: relative;
         }
+
+        .top-bar {
+            height: 50px; display: flex; align-items: center; padding: 0 20px;
+            background: rgba(0,0,0,0.2); border-bottom: 1px solid var(--glass-border);
+            justify-content: space-between;
+        }
+
+        .nav-tabs { display: flex; gap: 5px; }
+        .nav-item {
+            padding: 6px 15px; border-radius: 6px; cursor: pointer;
+            color: rgba(255,255,255,0.6); font-size: 14px; transition: 0.2s;
+        }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
+        .nav-item.active { background: rgba(59, 130, 246, 0.2); color: #3b82f6; font-weight: bold; }
+
+        .main-container { flex: 1; display: flex; overflow: hidden; }
+        
+        .sidebar {
+            width: 280px; background: rgba(0,0,0,0.2);
+            border-right: 1px solid var(--glass-border);
+            padding: 20px; display: flex; flex-direction: column;
+        }
+
+        .launch-btn-container { margin-top: auto; padding-top: 20px; }
         .launch-btn {
-            background: linear-gradient(135deg, #22c55e, #16a34a);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: #22c55e; height: 65px; border-radius: 10px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            cursor: pointer; transition: 0.2s; box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+            text-align: center;
         }
-        .launch-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px -5px rgba(34, 197, 94, 0.4);
+        .launch-btn:hover { background: #16a34a; transform: translateY(-2px); }
+        .launch-btn:active { transform: translateY(0); }
+        .launching { background: #3b82f6 !important; opacity: 0.8; cursor: not-allowed; }
+
+        .page { display: none; flex: 1; padding: 30px; overflow-y: auto; }
+        .page.active { display: block; }
+
+        .loader {
+            border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #fff;
+            border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite;
         }
-        .progress-bar {
-            height: 4px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 2px;
-            overflow: hidden;
-        }
-        .progress-fill {
-            height: 100%;
-            background: var(--accent);
-            width: 0%;
-            transition: width 0.3s ease;
-        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .setting-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-bottom: 12px; }
+        .setting-label { font-size: 12px; color: #94a3b8; margin-bottom: 8px; display: block; }
     </style>
 </head>
-<body class="h-screen flex items-center justify-center p-4">
-    <div class="launcher-container w-full h-full max-w-6xl max-h-[720px] glass rounded-3xl flex overflow-hidden shadow-2xl">
-        <!-- 侧边导航 -->
-        <nav class="w-64 border-r border-white/5 flex flex-col p-6">
-            <div class="flex items-center gap-3 mb-10 px-2">
-                <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-cube text-white"></i>
-                </div>
-                <span class="font-bold text-xl tracking-tight">UniLauncher</span>
-            </div>
-            
-            <div class="space-y-2 flex-1">
-                <div onclick="switchTab('home')" id="tab-home" class="sidebar-item active p-3 rounded-xl cursor-pointer flex items-center gap-3 transition">
-                    <i class="fas fa-home w-5"></i><span>主页</span>
-                </div>
-                <div onclick="switchTab('download')" id="tab-download" class="sidebar-item p-3 rounded-xl cursor-pointer flex items-center gap-3 transition text-slate-400">
-                    <i class="fas fa-download w-5"></i><span>下载版本</span>
-                </div>
-                <div onclick="switchTab('settings')" id="tab-settings" class="sidebar-item p-3 rounded-xl cursor-pointer flex items-center gap-3 transition text-slate-400">
-                    <i class="fas fa-cog w-5"></i><span>启动设置</span>
-                </div>
-            </div>
+<body>
 
-            <!-- 账号区域 -->
-            <div class="mt-auto p-4 bg-white/5 rounded-2xl border border-white/5">
-                <div class="flex items-center gap-3 mb-3">
-                    <img id="avatar" src="https://minotar.net/helm/Steve/32.png" class="w-8 h-8 rounded-md">
-                    <div class="overflow-hidden">
-                        <div id="username" class="text-xs font-bold truncate">Steve</div>
-                        <div class="text-[10px] text-slate-500">离线模式</div>
-                    </div>
-                </div>
-                <button onclick="openAuth()" class="w-full text-[10px] py-1.5 bg-white/10 hover:bg-white/20 rounded-md transition">切换账号</button>
-            </div>
-        </nav>
+    <div class="bg-layer"></div>
 
-        <!-- 主内容区 -->
-        <main class="flex-1 flex flex-col">
-            <!-- 页面内容 -->
-            <div id="content" class="flex-1 p-8 overflow-y-auto">
-                <!-- 主页 Tab -->
-                <div id="view-home" class="view">
-                    <div class="relative h-64 rounded-3xl overflow-hidden mb-8 border border-white/10">
-                        <img src="https://www.minecraft.net/content/dam/games/minecraft/key-art/Update_1.21_KeyArt_1920x1080.jpg" class="w-full h-full object-cover opacity-60">
-                        <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent flex flex-col justify-end p-8">
-                            <h1 class="text-4xl font-black mb-2">欢迎回来</h1>
-                            <p class="text-slate-300 text-sm">准备好开启新的冒险了吗？</p>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-3 gap-6">
-                        <div class="bg-white/5 border border-white/5 p-5 rounded-2xl">
-                            <i class="fas fa-clock text-blue-400 mb-3"></i>
-                            <div class="text-xs text-slate-500 uppercase font-bold">最后游玩</div>
-                            <div class="font-bold">1.20.1 - Forge</div>
-                        </div>
-                        <div class="bg-white/5 border border-white/5 p-5 rounded-2xl">
-                            <i class="fas fa-microchip text-green-400 mb-3"></i>
-                            <div class="text-xs text-slate-500 uppercase font-bold">Java 环境</div>
-                            <div class="font-bold">OpenJDK 17</div>
-                        </div>
-                        <div class="bg-white/5 border border-white/5 p-5 rounded-2xl text-center flex flex-col justify-center cursor-pointer hover:bg-white/10 transition border-dashed">
-                            <i class="fas fa-plus text-slate-500 mb-1"></i>
-                            <div class="text-[10px] text-slate-500">添加游戏实例</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- 下载 Tab (默认隐藏) -->
-                <div id="view-download" class="view hidden">
-                    <h2 class="text-2xl font-bold mb-6">版本下载</h2>
-                    <div id="version-list" class="space-y-3">
-                        <!-- 由脚本填充 -->
-                    </div>
-                </div>
-            </div>
+    <script>
+        const GLOBAL_CONFIG = {
+            backendUrl: "http://localhost:3000",
+            download: {
+                currentSource: 'bmclapi',
+                sources: {
+                    mojang: "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json",
+                    bmclapi: "https://bmclapi2.bangbang93.com/mc/game/version_manifest_v2.json"
+                }
+            },
+            settings: {
+                javaPath: "java",
+                maxMemory: 4096,
+                currentVersion: ""
+            },
+            user: {
+                name: "Steve",
+                type: "离线模式"
+            }
+        };
+    </script>
 
-            <!-- 底部控制栏 -->
-            <div class="h-28 border-t border-white/5 p-6 flex items-center justify-between gap-6 bg-slate-900/50">
-                <div class="flex-1">
-                    <div class="flex justify-between text-xs mb-2 text-slate-400">
-                        <span id="status-text">准备就绪</span>
-                        <span id="progress-percent">0%</span>
+    <div class="launcher-window">
+        <div class="top-bar">
+            <div class="flex items-center gap-2 font-bold opacity-80">
+                <i class="fas fa-rocket text-blue-500"></i>
+                <span>UniLauncher Pro</span>
+            </div>
+            <div class="nav-tabs">
+                <div id="nav-home" class="nav-item active" onclick="ui.switchPage('home', this)">主页</div>
+                <div id="nav-versions" class="nav-item" onclick="ui.switchPage('versions', this)">版本列表</div>
+                <div id="nav-mods" class="nav-item" onclick="ui.switchPage('mods', this)">模组/插件</div>
+                <div id="nav-settings" class="nav-item" onclick="ui.switchPage('settings', this)">设置</div>
+            </div>
+            <div class="flex gap-4 opacity-50 text-sm">
+                <i class="fas fa-minus cursor-pointer"></i>
+                <i class="fas fa-times cursor-pointer"></i>
+            </div>
+        </div>
+
+        <div class="main-container">
+            <div class="sidebar">
+                <div class="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="w-12 h-12 bg-gray-800 rounded-lg overflow-hidden border border-blue-500/50">
+                            <img id="user-avatar" src="https://minotar.net/helm/Steve/48.png" class="w-full h-full">
+                        </div>
+                        <div>
+                            <div class="font-bold text-sm" id="user-name">Steve</div>
+                            <div class="text-[10px] text-gray-400" id="user-type">离线模式</div>
+                        </div>
                     </div>
-                    <div class="progress-bar">
-                        <div id="progress-fill" class="progress-fill"></div>
-                    </div>
-                </div>
-                
-                <div class="flex gap-4 items-center">
-                    <select id="version-select" class="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 transition">
-                        <option value="1.20.1">Minecraft 1.20.1</option>
-                        <option value="1.19.2">Minecraft 1.19.2</option>
-                    </select>
-                    <button onclick="launch()" id="launch-btn" class="launch-btn px-12 py-3 rounded-xl font-bold text-lg shadow-lg">
-                        启动游戏
+                    <button onclick="ui.openLogin()" class="w-full bg-blue-600 hover:bg-blue-500 text-xs py-2 rounded transition font-bold">
+                        账户设置
                     </button>
                 </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-[10px] text-gray-500 uppercase font-bold mb-2 block">选择启动版本</label>
+                        <select id="current-version-select" class="w-full bg-black/40 border border-white/10 rounded p-2 text-sm outline-none cursor-pointer" onchange="launcherCore.syncVersion(this.value)">
+                            <option>正在连接后端...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="launch-btn-container">
+                    <div id="main-launch-btn" class="launch-btn" onclick="launcherCore.launchGame()">
+                        <span id="launch-text" class="text-lg font-bold">启动游戏</span>
+                        <span class="text-[10px] opacity-70" id="launch-info">等待选择版本</span>
+                    </div>
+                </div>
             </div>
-        </main>
+
+            <div class="content-area flex-1 relative">
+                <div id="home" class="page active">
+                    <div class="h-64 rounded-2xl bg-gradient-to-r from-blue-900/40 to-transparent p-8 flex flex-col justify-end border border-white/5 relative overflow-hidden">
+                        <div class="relative z-10">
+                            <h2 class="text-4xl font-black mb-2">UniLauncher</h2>
+                            <p class="text-gray-300 text-sm">与后端 `server.js` 实时同步。后端状态：<span id="backend-status" class="text-yellow-500">检查中...</span></p>
+                        </div>
+                    </div>
+                    <div class="mt-8 grid grid-cols-2 gap-4">
+                        <div class="bg-white/5 p-4 rounded-xl border border-white/5">
+                            <h3 class="text-sm font-bold mb-2">最新正式版</h3>
+                            <p class="text-xs text-gray-400" id="latest-release">--</p>
+                        </div>
+                        <div class="bg-white/5 p-4 rounded-xl border border-white/5">
+                            <h3 class="text-sm font-bold mb-2">后端工作目录</h3>
+                            <p class="text-[10px] text-gray-400 truncate" id="server-dir">未知</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="versions" class="page">
+                    <h2 class="text-xl font-bold mb-6">版本库</h2>
+                    <div id="version-list-container" class="space-y-2"></div>
+                </div>
+
+                <div id="settings" class="page">
+                    <h2 class="text-xl font-bold mb-6">设置</h2>
+                    <div class="setting-card">
+                        <label class="setting-label">后端地址</label>
+                        <input type="text" id="set-backend" class="w-full bg-black/40 border border-white/5 rounded p-2 text-xs outline-none" placeholder="http://localhost:3000">
+                    </div>
+                    <button onclick="ui.saveSettings()" class="bg-blue-600 px-6 py-2 rounded-lg font-bold text-sm">更新配置</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 登录弹窗 -->
+        <div id="login-modal" class="absolute inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center">
+            <div class="bg-[#16161e] border border-white/10 rounded-2xl w-80 p-6 text-center">
+                <h3 class="font-bold mb-4">修改离线名</h3>
+                <input type="text" id="offline-name-input" class="w-full bg-black/40 border border-white/10 rounded p-3 mb-4 outline-none" placeholder="输入玩家名">
+                <div class="flex gap-2">
+                    <button onclick="launcherCore.offlineLogin()" class="flex-1 bg-blue-600 py-2 rounded font-bold">确定</button>
+                    <button onclick="ui.closeLogin()" class="flex-1 bg-white/5 py-2 rounded">取消</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-        const BACKEND_URL = "http://localhost:3000";
+        const launcherCore = {
+            async fetchVersions() {
+                const statusEl = document.getElementById('backend-status');
+                const selector = document.getElementById('current-version-select');
+                const listContainer = document.getElementById('version-list-container');
 
-        async function launch() {
-            const btn = document.getElementById('launch-btn');
-            const status = document.getElementById('status-text');
-            const fill = document.getElementById('progress-fill');
-            
-            btn.disabled = true;
-            btn.innerText = "启动中...";
-            
-            try {
-                // 1. 模拟下载进度
-                status.innerText = "正在检查游戏资源...";
-                for(let i=0; i<=100; i+=10) {
-                    fill.style.width = i + "%";
-                    document.getElementById('progress-percent').innerText = i + "%";
-                    await new Promise(r => setTimeout(r, 100));
+                try {
+                    // 尝试从本地后端获取（规避跨域并同步后端状态）
+                    const res = await fetch(`${GLOBAL_CONFIG.backendUrl}/versions`);
+                    const data = await res.json();
+                    
+                    statusEl.innerText = "已连接";
+                    statusEl.className = "text-green-500";
+                    
+                    document.getElementById('latest-release').innerText = data.latest.release;
+                    
+                    selector.innerHTML = "";
+                    listContainer.innerHTML = "";
+
+                    data.versions.slice(0, 30).forEach(v => {
+                        const opt = document.createElement('option');
+                        opt.value = v.id;
+                        opt.innerText = v.id;
+                        selector.appendChild(opt);
+
+                        const row = document.createElement('div');
+                        row.className = "bg-white/5 p-3 rounded flex justify-between items-center text-sm";
+                        row.innerHTML = `<span>${v.id}</span><span class="text-[10px] opacity-40">${v.type}</span>`;
+                        listContainer.appendChild(row);
+                    });
+
+                    this.syncVersion(selector.value);
+                } catch (e) {
+                    statusEl.innerText = "后端未启动";
+                    statusEl.className = "text-red-500";
+                    selector.innerHTML = "<option>请先启动 server.js</option>";
                 }
+            },
 
-                // 2. 调用后端启动接口
-                const res = await fetch(`${BACKEND_URL}/launch`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        version: document.getElementById('version-select').value,
-                        username: document.getElementById('username').innerText,
-                        javaPath: "java" // 后端会自动处理
-                    })
-                });
-                
-                const data = await res.json();
-                if(data.success) {
-                    status.innerText = "游戏已启动！";
-                } else {
-                    throw new Error(data.error);
+            syncVersion(v) {
+                GLOBAL_CONFIG.settings.currentVersion = v;
+                document.getElementById('launch-info').innerText = v;
+            },
+
+            async launchGame() {
+                const btn = document.getElementById('main-launch-btn');
+                const info = document.getElementById('launch-info');
+                const version = GLOBAL_CONFIG.settings.currentVersion;
+
+                if (!version || btn.classList.contains('launching')) return;
+
+                btn.classList.add('launching');
+                const originalText = document.getElementById('launch-text').innerText;
+                document.getElementById('launch-text').innerText = "正在启动...";
+
+                try {
+                    const response = await fetch(`${GLOBAL_CONFIG.backendUrl}/launch`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            version: version,
+                            username: GLOBAL_CONFIG.user.name,
+                            javaPath: GLOBAL_CONFIG.settings.javaPath
+                        })
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        document.getElementById('launch-text').innerText = "已拉起进程";
+                        setTimeout(() => {
+                            document.getElementById('launch-text').innerText = originalText;
+                            btn.classList.remove('launching');
+                        }, 3000);
+                    } else {
+                        throw new Error(result.error);
+                    }
+                } catch (e) {
+                    alert("启动失败: " + e.message);
+                    document.getElementById('launch-text').innerText = originalText;
+                    btn.classList.remove('launching');
                 }
-            } catch (err) {
-                status.innerText = "错误: " + err.message;
-                fill.style.background = "#ef4444";
-            } finally {
-                setTimeout(() => {
-                    btn.disabled = false;
-                    btn.innerText = "启动游戏";
-                    fill.style.width = "0%";
-                    fill.style.background = "var(--accent)";
-                }, 3000);
-            }
-        }
+            },
 
-        function switchTab(tab) {
-            document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
-            document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active', 'text-white'));
-            
-            document.getElementById('view-' + tab).classList.remove('hidden');
-            document.getElementById('tab-' + tab).classList.add('active');
-            
-            if(tab === 'download') fetchVersions();
-        }
-
-        async function fetchVersions() {
-            const list = document.getElementById('version-list');
-            list.innerHTML = `<div class="p-10 text-center text-slate-500 text-sm">正在同步 Mojang 数据库...</div>`;
-            try {
-                const res = await fetch('https://bmclapi2.bangbang93.com/mc/game/version_manifest_v2.json');
-                const data = await res.json();
-                list.innerHTML = data.versions.slice(0, 10).map(v => `
-                    <div class="bg-white/5 p-4 rounded-2xl flex justify-between items-center border border-white/5 hover:border-blue-500/50 transition group">
-                        <div>
-                            <span class="font-bold">${v.id}</span>
-                            <span class="ml-3 text-[10px] text-slate-500 uppercase">${v.type}</span>
-                        </div>
-                        <button class="bg-blue-600 opacity-0 group-hover:opacity-100 px-4 py-1.5 rounded-lg text-xs font-bold transition">获取</button>
-                    </div>
-                `).join('');
-            } catch(e) {
-                list.innerHTML = "加载失败";
+            offlineLogin() {
+                const name = document.getElementById('offline-name-input').value || "Steve";
+                GLOBAL_CONFIG.user.name = name;
+                document.getElementById('user-name').innerText = name;
+                document.getElementById('user-avatar').src = `https://minotar.net/helm/${name}/48.png`;
+                ui.closeLogin();
             }
-        }
+        };
+
+        const ui = {
+            switchPage(id, el) {
+                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                document.getElementById(id).classList.add('active');
+                el.classList.add('active');
+            },
+            openLogin() { document.getElementById('login-modal').classList.remove('hidden'); },
+            closeLogin() { document.getElementById('login-modal').classList.add('hidden'); },
+            saveSettings() {
+                const bUrl = document.getElementById('set-backend').value;
+                if(bUrl) GLOBAL_CONFIG.backendUrl = bUrl;
+                launcherCore.fetchVersions();
+                alert("设置已尝试更新");
+            }
+        };
+
+        window.onload = () => {
+            document.getElementById('set-backend').value = GLOBAL_CONFIG.backendUrl;
+            launcherCore.fetchVersions();
+        };
     </script>
 </body>
 </html>
