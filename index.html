@@ -151,7 +151,7 @@
                     <div>
                         <label class="text-[10px] text-gray-500 uppercase font-bold mb-2 block">选择启动版本</label>
                         <select id="current-version-select" class="w-full bg-black/40 border border-white/10 rounded p-2 text-sm outline-none cursor-pointer" onchange="launcherCore.syncVersion(this.value)">
-                            <option>正在连接后端...</option>
+                            <option value="">正在连接后端...</option>
                         </select>
                     </div>
                 </div>
@@ -221,8 +221,9 @@
                 const listContainer = document.getElementById('version-list-container');
 
                 try {
-                    // 尝试从本地后端获取（规避跨域并同步后端状态）
+                    // 尝试从本地后端获取
                     const res = await fetch(`${GLOBAL_CONFIG.backendUrl}/versions`);
+                    if (!res.ok) throw new Error('Network response was not ok');
                     const data = await res.json();
                     
                     statusEl.innerText = "已连接";
@@ -233,37 +234,46 @@
                     selector.innerHTML = "";
                     listContainer.innerHTML = "";
 
-                    data.versions.slice(0, 30).forEach(v => {
-                        const opt = document.createElement('option');
-                        opt.value = v.id;
-                        opt.innerText = v.id;
-                        selector.appendChild(opt);
+                    if (data.versions && data.versions.length > 0) {
+                        data.versions.slice(0, 30).forEach(v => {
+                            const opt = document.createElement('option');
+                            opt.value = v.id;
+                            opt.innerText = v.id;
+                            selector.appendChild(opt);
 
-                        const row = document.createElement('div');
-                        row.className = "bg-white/5 p-3 rounded flex justify-between items-center text-sm";
-                        row.innerHTML = `<span>${v.id}</span><span class="text-[10px] opacity-40">${v.type}</span>`;
-                        listContainer.appendChild(row);
-                    });
-
-                    this.syncVersion(selector.value);
+                            const row = document.createElement('div');
+                            row.className = "bg-white/5 p-3 rounded flex justify-between items-center text-sm hover:bg-white/10 transition cursor-pointer";
+                            row.onclick = () => {
+                                selector.value = v.id;
+                                this.syncVersion(v.id);
+                            };
+                            row.innerHTML = `<span>${v.id}</span><span class="text-[10px] opacity-40">${v.type}</span>`;
+                            listContainer.appendChild(row);
+                        });
+                        this.syncVersion(selector.value);
+                    }
                 } catch (e) {
                     statusEl.innerText = "后端未启动";
                     statusEl.className = "text-red-500";
-                    selector.innerHTML = "<option>请先启动 server.js</option>";
+                    selector.innerHTML = "<option value=''>请先启动 server.js</option>";
+                    console.error("Fetch versions failed:", e);
                 }
             },
 
             syncVersion(v) {
+                if (!v) return;
                 GLOBAL_CONFIG.settings.currentVersion = v;
                 document.getElementById('launch-info').innerText = v;
             },
 
             async launchGame() {
                 const btn = document.getElementById('main-launch-btn');
-                const info = document.getElementById('launch-info');
                 const version = GLOBAL_CONFIG.settings.currentVersion;
 
-                if (!version || btn.classList.contains('launching')) return;
+                if (!version || btn.classList.contains('launching')) {
+                    if (!version) alert("请先选择一个游戏版本！");
+                    return;
+                }
 
                 btn.classList.add('launching');
                 const originalText = document.getElementById('launch-text').innerText;
@@ -284,21 +294,21 @@
                     if (result.success) {
                         document.getElementById('launch-text').innerText = "已拉起进程";
                         setTimeout(() => {
-                            document.getElementById('launch-text').innerText = originalText;
+                            document.getElementById('launch-text').innerText = "启动游戏";
                             btn.classList.remove('launching');
                         }, 3000);
                     } else {
-                        throw new Error(result.error);
+                        throw new Error(result.error || "未知错误");
                     }
                 } catch (e) {
-                    alert("启动失败: " + e.message);
-                    document.getElementById('launch-text').innerText = originalText;
+                    alert("启动失败: " + e.message + "\n请确保后端 server.js 已在本地运行。");
+                    document.getElementById('launch-text').innerText = "启动游戏";
                     btn.classList.remove('launching');
                 }
             },
 
             offlineLogin() {
-                const name = document.getElementById('offline-name-input').value || "Steve";
+                const name = document.getElementById('offline-name-input').value.trim() || "Steve";
                 GLOBAL_CONFIG.user.name = name;
                 document.getElementById('user-name').innerText = name;
                 document.getElementById('user-avatar').src = `https://minotar.net/helm/${name}/48.png`;
@@ -316,10 +326,12 @@
             openLogin() { document.getElementById('login-modal').classList.remove('hidden'); },
             closeLogin() { document.getElementById('login-modal').classList.add('hidden'); },
             saveSettings() {
-                const bUrl = document.getElementById('set-backend').value;
-                if(bUrl) GLOBAL_CONFIG.backendUrl = bUrl;
-                launcherCore.fetchVersions();
-                alert("设置已尝试更新");
+                const bUrl = document.getElementById('set-backend').value.trim();
+                if(bUrl) {
+                    GLOBAL_CONFIG.backendUrl = bUrl;
+                    launcherCore.fetchVersions();
+                    alert("设置已保存，正在尝试连接后端...");
+                }
             }
         };
 
