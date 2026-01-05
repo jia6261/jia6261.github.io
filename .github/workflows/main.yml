@@ -1,0 +1,93 @@
+name: "UniLauncher CI/CD"
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+# 设置权限以允许部署到 GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  # 任务 1：测试后端
+  test-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: "Setup Node.js"
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18.x"
+
+      - name: "Debug: List Files"
+        run: |
+          echo "当前工作目录: $(pwd)"
+          echo "仓库文件列表:"
+          ls -R
+
+      - name: "Initialize package.json"
+        run: |
+          if [ ! -f package.json ]; then
+            echo '{"dependencies":{"express":"^4.18.2","cors":"^2.8.5","axios":"^1.4.0"}}' > package.json
+          fi
+          
+      - name: "Install dependencies"
+        run: npm install
+        
+      - name: "Run Test Server"
+        run: |
+          # 自动寻找 server.js 的位置 (不区分大小写查找)
+          SERVER_PATH=$(find . -iname "server.js" | head -n 1)
+          
+          if [ -z "$SERVER_PATH" ]; then
+            echo "❌ 错误: 在仓库中找不到 server.js 文件！"
+            exit 1
+          fi
+          
+          node "$SERVER_PATH" > server.log 2>&1 & 
+          
+          PROTO="http"
+          HOST="127.0.0.1"
+          ADDR="${PROTO}://${HOST}:3000"
+          
+          echo "等待端口 3000..."
+          timeout 30s bash -c "until curl -s ${ADDR}/versions > /dev/null; do sleep 2; done" || (echo "❌ 服务启动超时，日志如下：" && cat server.log && exit 1)
+          
+          curl -X POST "${ADDR}/launch" \
+            -H "Content-Type: application/json" \
+            -d '{"version": "1.20.1", "username": "CI_Tester"}'
+        env:
+          GITHUB_ACTIONS: true
+          GAME_DIR: ./test_mc_dir
+          PORT: 3000
+
+  # 任务 2：部署前端
+  deploy-frontend:
+    needs: test-backend
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "Prepare Website Files"
+        run: |
+          HTML_FILE=$(find . -name "*.html" ! -name "index.html" | head -n 1)
+          if [ -n "$HTML_FILE" ] && [ -f "$HTML_FILE" ]; then
+            mv "$HTML_FILE" index.html
+          fi
+
+      - name: "Setup Pages"
+        uses: actions/configure-pages@v4
+
+      - name: "Upload Artifact"
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "."
+
+      - name: "Deploy to GitHub Pages"
+        id: deployment
