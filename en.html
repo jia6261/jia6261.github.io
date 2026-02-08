@@ -1,17 +1,199 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-	<meta content="text/html; charset=UTF-8" http-equiv="content-type">
-	<style type="text/css">
-		ol{margin:0;padding:0}table td,table th{padding:0}.c0{padding-top:0pt;padding-bottom:0pt;line-height:1.15;orphans:2;widows:2;text-align:left;height:11pt}.c1{color:#00ff00;font-weight:400;text-decoration:none;vertical-align:baseline;font-size:36pt;font-family:"Impact";font-style:normal}.c2{-webkit-text-decoration-skip:none;color:#1155cc;font-weight:400;text-decoration:underline;text-decoration-skip-ink:none;font-size:36pt;font-family:"Impact"}.c3{padding-top:0pt;padding-bottom:0pt;line-height:1.15;orphans:2;widows:2;text-align:left}.c6{font-size:36pt;font-family:"Impact";color:#00ff00;font-weight:400}.c5{background-color:#ffffff;max-width:451.4pt;padding:72pt 72pt 72pt 72pt}.c4{color:inherit;text-decoration:inherit}.title{padding-top:0pt;color:#000000;font-size:26pt;padding-bottom:3pt;font-family:"Arial";line-height:1.15;page-break-after:avoid;orphans:2;widows:2;text-align:left}.subtitle{padding-top:0pt;color:#666666;font-size:15pt;padding-bottom:16pt;font-family:"Arial";line-height:1.15;page-break-after:avoid;orphans:2;widows:2;text-align:left}li{color:#000000;font-size:11pt;font-family:"Arial"}p{margin:0;color:#000000;font-size:11pt;font-family:"Arial"}h1{padding-top:20pt;color:#000000;font-size:20pt;padding-bottom:6pt;font-family:"Arial";line-height:1.15;page-break-after:avoid;orphans:2;widows:2;text-align:left}h2{padding-top:18pt;color:#000000;font-size:16pt;padding-bottom:6pt;font-family:"Arial";line-height:1.15;page-break-after:avoid;orphans:2;widows:2;text-align:left}h3{padding-top:16pt;color:#434343;font-size:14pt;padding-bottom:4pt;font-family:"Arial";line-height:1.15;page-break-after:avoid;orphans:2;widows:2;text-align:left}h4{padding-top:14pt;color:#666666;font-size:12pt;padding-bottom:4pt;font-family:"Arial";line-height:1.15;page-break-after:avoid;orphans:2;widows:2;text-align:left}h5{padding-top:12pt;color:#666666;font-size:11pt;padding-bottom:4pt;font-family:"Arial";line-height:1.15;page-break-after:avoid;orphans:2;widows:2;text-align:left}h6{padding-top:12pt;color:#666666;font-size:11pt;padding-bottom:4pt;font-family:"Arial";line-height:1.15;page-break-after:avoid;font-style:italic;orphans:2;widows:2;text-align:left}
-	</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="garjia - Programmer, Content Creator, Coder">
+    <title>garjia - English</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 60px 40px;
+            max-width: 700px;
+            width: 100%;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        h1 {
+            font-size: 48px;
+            color: #667eea;
+            font-weight: 700;
+        }
+        
+        .lang-switch {
+            padding: 8px 16px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .lang-switch:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .content {
+            margin-top: 30px;
+        }
+        
+        .section {
+            margin-bottom: 35px;
+        }
+        
+        .section-title {
+            font-size: 20px;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        .link-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+        }
+        
+        .link-item:hover {
+            background: #667eea;
+            color: white;
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .link-icon {
+            font-size: 24px;
+            margin-right: 15px;
+            min-width: 30px;
+        }
+        
+        .link-text {
+            flex: 1;
+        }
+        
+        .link-text strong {
+            display: block;
+            margin-bottom: 3px;
+        }
+        
+        .link-text small {
+            opacity: 0.7;
+            font-size: 12px;
+        }
+        
+        .link-item:hover .link-text small {
+            opacity: 0.9;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 40px 25px;
+            }
+            
+            h1 {
+                font-size: 36px;
+            }
+            
+            .header {
+                justify-content: center;
+            }
+            
+            .section-title {
+                font-size: 18px;
+            }
+            
+            .link-item {
+                padding: 12px;
+            }
+        }
+    </style>
 </head>
-<body class="c5 doc-content">
-	<p class="c3"><span class="c1">garjia</span></p>
-	<p class="c0"><span class="c1"></span></p>
-	<p class="c3"><span class="c1">my China youtube&#65306;</span></p>
-	<p class="c3"><span class="c2"><a class="c4" href="https://www.google.com/url?q=https://space.bilibili.com/3632301950896458&amp;sa=D&amp;source=editors&amp;ust=1770523261839379&amp;usg=AOvVaw0n1jWKSdMmVm0Ehr48rBZn">https://space.bilibili.com/3632301950896458</a></span></p>
-	<p class="c0"><span class="c1"></span></p>
-	<p class="c3"><span class="c1">my codeing website:</span></p>
-	<p class="c3"><span class="c2"><a class="c4" href="https://www.google.com/url?q=https://shequ.codemao.cn/user/1539144230&amp;sa=D&amp;source=editors&amp;ust=1770523261839913&amp;usg=AOvVaw2EDJJz3F0-b4-CrvNpECTh">https://shequ.codemao.cn/user/1539144230</a></span></p>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>garjia</h1>
+            <a href="ch.html" class="lang-switch">中文</a>
+        </div>
+        
+        <div class="content">
+            <div class="section">
+                <div class="section-title">🎬 Content Creator</div>
+                <a href="https://space.bilibili.com/3632301950896458" class="link-item" target="_blank" rel="noopener noreferrer">
+                    <div class="link-icon">▶️</div>
+                    <div class="link-text">
+                        <strong>Bilibili Channel</strong>
+                        <small>My China YouTube - Video Content</small>
+                    </div>
+                </a>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">💻 Programming</div>
+                <a href="https://shequ.codemao.cn/user/1539144230" class="link-item" target="_blank" rel="noopener noreferrer">
+                    <div class="link-icon">🔧</div>
+                    <div class="link-text">
+                        <strong>CodeMao Community</strong>
+                        <small>My Coding Projects & Tutorials</small>
+                    </div>
+                </a>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">📱 About Me</div>
+                <p style="color: #666; line-height: 1.6; font-size: 14px;">
+                    Welcome to my personal homepage! I'm a programmer and content creator passionate about sharing knowledge and creating engaging content. Feel free to explore my projects and follow my channels.
+                </p>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>© 2024 garjia. All rights reserved.</p>
+        </div>
+    </div>
 </body>
 </html>
