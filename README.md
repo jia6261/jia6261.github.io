@@ -55,6 +55,8 @@ Simply open `index.html` in your browser or visit the live site at [jia6261.gith
 - Edge (latest)
 - Mobile browsers
 
+- [![This Website is Powered by DigitalPlat FreeDomain Get a free domain from DigitalPlat.](https://img.shields.io/badge/DigitalPlat-Get%20a%20free%20domain%20from%20DigitalPlat.-e2e8f0?style=flat-square&logo=databricks&logoColor=ffffff)](https://dash.domain.digitalplat.org/signup?ref=seXPJaJd9d)
+
 ## License
 
 © 2024 garjia. All rights reserved.
